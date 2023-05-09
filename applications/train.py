@@ -124,7 +124,7 @@ def run_train_experiment(
         )
         if config["summarizer_type"] == "single_instance"
         else RepresentationSummarizerMultiInstance(
-            per_residue_output_size=config["summarizer_out_size"],
+            per_instance_output_size=config["summarizer_out_size"],
             num_hidden_layers=config["summarizer_num_layers"],
             activation=nn.ReLU
             if config["summarizer_activation"] == "relu"
