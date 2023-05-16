@@ -11,6 +11,7 @@ class RepresentationAutoEncoder(nn.Module):
         per_residue_output_size=10,
         num_residues=700,
         representation_size=1024,
+        decoder_layer_sizes=[64, 128, 256]
     ):
         super().__init__()
         self.encoder = Encoder(
@@ -24,6 +25,7 @@ class RepresentationAutoEncoder(nn.Module):
             representation_size=representation_size,
             per_residue_output_size=per_residue_input_size,
             num_residues=num_residues,
+            layer_sizes=decoder_layer_sizes
         )
 
     def forward(self, s_s: torch.Tensor):
@@ -52,6 +54,7 @@ class Encoder(nn.Module):
             num_instances=num_residues,
             num_hidden_layers=num_hidden_layers,
         )
+
         self.merger = nn.Sequential(
             nn.Flatten(1),
             nn.Linear(per_residue_output_size * num_residues, representation_size),
@@ -74,6 +77,7 @@ class Decoder(nn.Module):
         per_residue_output_size=1024,
         activation=nn.ReLU,
         p_dropout=0.0,
+        layer_sizes=[64, 128, 256],
     ):
         super().__init__()
 
@@ -81,15 +85,15 @@ class Decoder(nn.Module):
 
         self.num_residues = num_residues
         self.per_residue_output_size = per_residue_output_size
-        self.layers = nn.Sequential(
-            nn.Linear(representation_size, 64),
-            activation(),
-            nn.Linear(64, 128),
-            activation(),
-            nn.Linear(128, 256),
-            activation(),
-            nn.Linear(256, output_size),
-        )
+
+        all_layer_sizes = [representation_size, *layer_sizes, output_size]
+        modulePairs = [
+            [nn.Linear(all_layer_sizes[i], all_layer_sizes[i + 1]), activation()]
+            for i in range(len(all_layer_sizes) - 1)
+        ]
+        modules = [modulePairs[i // 2][i % 2] for i in range(len(modulePairs) * 2)]
+
+        self.layers = nn.Sequential(*modules)
 
     def forward(self, representation: torch.Tensor):
         reconstructed = self.layers(representation)
