@@ -8,6 +8,7 @@ from typing import Callable
 from scipy.stats import spearmanr
 import pandas as pd
 from typing_extensions import TypedDict, Literal
+from util.telegram import TelegramBot
 
 
 def calculate_metrics(predictions, labels, key: str):
@@ -93,6 +94,11 @@ def train_model(
     prepare_labels: Callable[[torch.Tensor], torch.Tensor] = lambda x: x,
     should_stop: Callable[["list[float]"], bool] = lambda epoch_val_losses: False,
 ) -> TrainResponse:
+    telegram = TelegramBot()
+    telegram.send_telegram("Starting training..")
+    epoch_msg = telegram.send_telegram("Epoch..")["result"]
+    loss_msg = telegram.send_telegram("loss..")["result"]
+
     optimizer = scheduler.optimizer
     since = time.time()
 
@@ -135,6 +141,17 @@ def train_model(
                         ),
                         end="\r",
                     )
+                    telegram.edit_text_message(
+                        message_id=epoch_msg["message_id"],
+                        editedText="Epoch: [{}/{}], Batch: [{}/{}], batch loss: {:.6f}, epoch abs diff mean {:.6f}".format(
+                            epoch,
+                            num_epochs,
+                            idx + 1,
+                            len(dataloaders[phase]),
+                            loss,
+                            running_mad,
+                        ),
+                    )
 
             if phase == "train":
                 model.train()  # Set model to training mode
@@ -163,6 +180,10 @@ def train_model(
                 scheduler.step()
 
             print(f"{phase} Loss: {epoch_loss:.4f}")
+            telegram.edit_text_message(
+                message_id=loss_msg["message_id"],
+                editedText=f"{phase} Loss: {epoch_loss:.4f}",
+            )
 
             if phase == "val":
                 if use_wandb:
@@ -178,11 +199,16 @@ def train_model(
         print()
         if phase == "val" and should_stop(epoch_losses["val"]):
             print("Stopping early...")
+            telegram.send_telegram("stopping early ..")
             break
 
     time_elapsed = time.time() - since
     print(f"Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s")
     print(f"Best val Acc: {best_epoch_loss:4f}")
+    telegram.send_telegram(
+        f"Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s"
+    )
+    telegram.send_telegram(f"Best val Acc: {best_epoch_loss:4f}")
 
     # load best model weights
     if best_model_path:
