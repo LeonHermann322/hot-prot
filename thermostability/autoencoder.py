@@ -40,15 +40,11 @@ class Encoder(torch.nn.Module):
         coded = self.encoder(x)
         latent = self.dense_encoder(coded)
         mu = self.mu_fc(latent)
-        # print("MUUUU", mu)
         sigma = torch.exp(self.sigma_fc(latent))
-        # print("SIGMA", sigma)
 
-        z = z = self.reparameterize(mu, sigma)
+        z = self.reparameterize(mu, sigma)
         self.kl = torch.mean(-0.2 * torch.sum(1 + sigma - mu ** 2 - sigma.exp(), dim = 1), dim = 0)
-        # print("KLLLLL", self.kl)
         return z
-        return latent
 
     def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         """

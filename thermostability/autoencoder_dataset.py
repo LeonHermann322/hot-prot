@@ -14,6 +14,7 @@ def zero_padding(single_repr: torch.Tensor, len: int) -> torch.Tensor:
 
 
 def zero_padding_700(single_repr: torch.Tensor) -> torch.Tensor:
+
     return zero_padding(single_repr, 700)
 
 
@@ -27,7 +28,7 @@ def zero_padding_collate(
     for s_s in s_s_list:
         padded = zero_padding(s_s, max_size)
         padded_s_s.append(padded)
-    results = torch.stack([torch.stack(padded_s_s, 0)])
+    results = torch.stack([torch.stack(padded_s_s, 0)]), torch.stack([torch.stack(padded_s_s)])
     return results
 
 
@@ -47,12 +48,11 @@ class AutoEncoderDataset(Dataset):
         max_seq_len:int = 700,
     ) -> None:
         super().__init__()
-
+        self.representations_dir = "/hpi/fs00/scratch/leon.hermann/data/s_s"
         self.limit = limit
         self.type = ds_type
         if not os.path.exists(dataset_filepath):
             raise Exception(f"{dataset_filepath} does not exist.")
-        self.representations_dir = "data/s_s"
         with open(f"{self.representations_dir}/sequences.csv", newline="\n") as csvfile:
             spamreader = csv.reader(csvfile, delimiter=",", skipinitialspace=True)
             self.sequenceToFilename = {
@@ -88,10 +88,10 @@ class AutoEncoderDataset(Dataset):
        
 
         filename, thermo, seq = self.filename_thermo_seq[index]
-        with open(os.path.join("data/s_s", filename), "rb") as f:
+        with open(os.path.join(self.representations_dir, filename), "rb") as f:
             s_s = torch.load(f)
 
         mean = s_s.mean()
         std = s_s.std()
         s_s = (s_s-mean)/std
-        return s_s,s_s
+        return s_s
