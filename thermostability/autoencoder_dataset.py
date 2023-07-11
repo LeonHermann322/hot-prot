@@ -25,15 +25,18 @@ def zero_padding_collate(
     max_size = fixed_size if fixed_size else max([s_s.size(0) for s_s, _ in s_s_list])
 
     padded_s_s = []
-    for s_s in s_s_list:
+    temps = []
+    for s_s, temp in s_s_list:
         padded = zero_padding(s_s, max_size)
         padded_s_s.append(padded)
-    results = torch.stack([torch.stack(padded_s_s, 0)]), torch.stack([torch.stack(padded_s_s)])
+        temps.append(temp)
+    results = torch.stack(padded_s_s, 0).unsqueeze(1), torch.stack(temps).unsqueeze(1)
     return results
 
 
 def zero_padding700_collate(s_s_list: "list[tuple[torch.Tensor, torch.Tensor]]"):
     return zero_padding_collate(s_s_list, 704)
+
 
 
 """ Loads pregenerated esmfold outputs (sequence representations s_s) """
@@ -48,7 +51,7 @@ class AutoEncoderDataset(Dataset):
         max_seq_len:int = 700,
     ) -> None:
         super().__init__()
-        self.representations_dir = "/hpi/fs00/scratch/leon.hermann/data/s_s"
+        self.representations_dir = "/hpi/fs00/scratch/hoangan.nguyen/data/s_s"
         self.limit = limit
         self.type = ds_type
         if not os.path.exists(dataset_filepath):
@@ -77,7 +80,8 @@ class AutoEncoderDataset(Dataset):
             diff = len(seq_thermos) - len(self.filename_thermo_seq)
             print(
                 f"""Omitted {diff} samples of {os.path.basename(dataset_filepath)} because
-                 their sequences have not been pregenerated"""
+                 
+                 ptheir sequences have not been pregenerated"""
             )
 
     def __len__(self):
@@ -90,8 +94,8 @@ class AutoEncoderDataset(Dataset):
         filename, thermo, seq = self.filename_thermo_seq[index]
         with open(os.path.join(self.representations_dir, filename), "rb") as f:
             s_s = torch.load(f)
-
+        
         mean = s_s.mean()
         std = s_s.std()
         s_s = (s_s-mean)/std
-        return s_s
+        return s_s, torch.tensor(thermo, dtype=torch.float32)

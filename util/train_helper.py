@@ -12,6 +12,8 @@ from util.telegram import TelegramBot
 
 
 def calculate_metrics(predictions, labels, key: str):
+    predictions = predictions.detach().cpu()
+    labels = labels.detach().cpu()
     diffs = pd.Series([abs(pred - labels[i]) for (i, pred) in enumerate(predictions)])
     return {
         f"best_epoch_spearman_r_s_{key}": spearmanr(predictions, labels).correlation,

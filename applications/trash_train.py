@@ -99,7 +99,7 @@ dataloaders = {
 
 criterion = torch.nn.MSELoss()
 
-model = AutoEncoder()
+model = torch.load("results/trash_autoencoder.pt")
 
 weight_decay = 1e-5
 
@@ -121,7 +121,7 @@ best_epoch_loss = sys.float_info.max
 
 best_epoch_actuals = torch.tensor([])
 epoch_mads = {"train": [], "val": []}
-num_epochs = 40
+num_epochs = 10
 telegram.send_telegram("Starting training trash_train...")
 epoch_msg = telegram.send_telegram("Epoch")["result"]
 phase_msg = telegram.send_telegram("train..")["result"]
@@ -191,8 +191,7 @@ try:
                 if epoch_loss < best_epoch_loss:
                     best_val_mad = epoch_mad
                     best_epoch_loss = epoch_loss
-                    torch.save(model.encoder, "results/trash_auto_encoder.pt")
-                    torch.save(model.decoder, "results/trash_auto_decoder.pt")
+                    torch.save(model, "results/auto_enc.pt")
             print()
             if phase == "val" and should_stop(epoch_losses["val"]):
                 print("Stopping early...")
