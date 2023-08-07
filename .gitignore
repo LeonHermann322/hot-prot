@@ -22,6 +22,7 @@ mlruns
 mlartifacts
 
 results/
+cache/
 runs
 g++
 gcc
